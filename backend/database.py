@@ -3,8 +3,8 @@ Boston Food Inspections Dashboard - Database Operations
 PostgreSQL connection and schema management with raw SQL (no ORM)
 """
 
-import psycopg
-from psycopg.rows import dict_row
+import psycopg2
+import psycopg2.extras
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional, Dict, List
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 def get_db_connection():
     """
     Context manager for database connections.
-    Returns connection with dict row factory for dict-like row access.
+    Returns connection with dict cursor for dict-like row access.
     """
     conn = None
     try:
-        conn = psycopg.connect(settings.DATABASE_URL, row_factory=dict_row)
+        conn = psycopg2.connect(settings.DATABASE_URL)
         yield conn
     except Exception as e:
         if conn:
@@ -39,7 +39,7 @@ def get_db_connection():
 def init_db():
     """Initialize database schema - creates tables and indexes if they don't exist"""
     with get_db_connection() as conn:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             # Create inspections table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS inspections (
@@ -153,7 +153,7 @@ def upsert_inspection(conn, record: Dict) -> tuple[bool, str]:
     Insert or update an inspection record.
     Returns (was_inserted, inspection_key)
     """
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
         # Create unique key from business name + result date + violation code
         # This allows multiple violations per inspection
         businessname = record.get('businessname', 'UNKNOWN')
@@ -248,7 +248,7 @@ def upsert_inspection(conn, record: Dict) -> tuple[bool, str]:
 
 def create_sync_log(conn) -> int:
     """Create a new sync log entry and return its ID"""
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
         cur.execute("""
             INSERT INTO sync_log (source, started_at, status)
             VALUES ('inspections', CURRENT_TIMESTAMP, 'running')
@@ -270,7 +270,7 @@ def update_sync_log(
     error_message: Optional[str] = None
 ):
     """Update sync log with completion details"""
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
         cur.execute("""
             UPDATE sync_log
             SET completed_at = CURRENT_TIMESTAMP,
@@ -286,7 +286,7 @@ def update_sync_log(
 
 def get_last_sync(conn) -> Optional[Dict]:
     """Get the most recent sync log entry for inspections"""
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
         cur.execute("""
             SELECT * FROM sync_log
             WHERE source = 'inspections'

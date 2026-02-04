@@ -11,6 +11,7 @@ from typing import Optional
 from datetime import datetime
 from pathlib import Path
 import logging
+import psycopg2.extras
 
 from .config import settings
 from .database import get_db_connection, init_db, get_last_sync
@@ -79,7 +80,7 @@ async def get_inspections(
     """
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 # Build WHERE clause
                 conditions = [f"resultdttm >= CURRENT_DATE - INTERVAL '{days} days'"]
                 params = []
@@ -142,7 +143,7 @@ async def get_stats(days: int = Query(90, ge=1, le=3650, description="Number of 
     """Get inspection statistics"""
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 # Total unique establishments inspected
                 cur.execute(f"""
                     SELECT COUNT(DISTINCT businessname || '_' || address) as count
@@ -234,7 +235,7 @@ async def get_neighborhoods():
     """Get list of all ZIP codes with establishment counts"""
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 cur.execute("""
                     SELECT zip, COUNT(DISTINCT businessname || '_' || address) as count
                     FROM inspections
@@ -256,7 +257,7 @@ async def get_result_types():
     """Get list of all inspection result types"""
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 cur.execute("""
                     SELECT DISTINCT result
                     FROM inspections
@@ -286,7 +287,7 @@ async def health_check():
     try:
         # Check database connection
         with get_db_connection() as conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 cur.execute("SELECT 1")
 
             # Get last sync
