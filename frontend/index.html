@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston Restaurant Inspections Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; }
+        .header { background-color: #2c3e50; color: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 1.5rem; font-weight: 600; }
+        .header .subtitle { font-size: 0.875rem; color: #bdc3c7; margin-top: 0.25rem; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+        .filters { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.875rem; font-weight: 500; color: #555; margin-bottom: 0.5rem; }
+        .filter-group select { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.875rem; }
+        .stats-bar { display: flex; gap: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.875rem; flex-wrap: wrap; }
+        .stat-value { font-size: 1.25rem; font-weight: 600; color: #2c3e50; }
+        .stat-label { color: #999; font-size: 0.75rem; text-transform: uppercase; }
+        #map { height: 600px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .loading { text-align: center; padding: 2rem; color: #666; }
+        .inspection-popup { max-width: 320px; line-height: 1.6; }
+        .inspection-popup strong { font-size: 0.875rem; color: #2c3e50; display: block; margin-top: 0.5rem; }
+        .inspection-popup strong:first-child { margin-top: 0; }
+        .inspection-popup .business-name { font-size: 1rem; font-weight: 700; color: #2c3e50; margin-bottom: 0.5rem; }
+        .inspection-popup .result-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-top: 0.5rem; }
+        .result-pass { background-color: #27ae60; color: white; }
+        .result-fail { background-color: #e74c3c; color: white; }
+        .result-warning { background-color: #f39c12; color: white; }
+        .leaflet-popup-content { max-height: 400px; overflow-y: auto; }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .filters-grid { grid-template-columns: 1fr; }
+            .stats-bar { flex-direction: column; gap: 1rem; }
+            #map { height: 500px; }
+            .inspection-popup { max-width: 250px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Boston Restaurant Inspections Dashboard</h1>
+        <div class="subtitle">Real-time tracking of food establishment health inspections across Boston</div>
+    </div>
+    <div class="container">
+        <div class="filters">
+            <div class="filters-grid">
+                <div class="filter-group"><label for="zip-filter">ZIP Code</label><select id="zip-filter"><option value="">All ZIP Codes</option></select></div>
+                <div class="filter-group"><label for="result-filter">Inspection Result</label><select id="result-filter"><option value="">All Results</option></select></div>
+                <div class="filter-group"><label for="days-filter">Time Period</label><select id="days-filter"><option value="3">Last 3 Days</option><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option><option value="60">Last 60 Days</option><option value="90" selected>Last 90 Days</option><option value="180">Last 6 Months</option><option value="365">Last Year</option><option value="730">Last 2 Years</option></select></div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat"><div class="stat-value" id="total-establishments">-</div><div class="stat-label">Establishments</div></div>
+                <div class="stat"><div class="stat-value" id="pass-rate">-</div><div class="stat-label">Pass Rate</div></div>
+                <div class="stat"><div class="stat-value" id="total-violations">-</div><div class="stat-label">Violations</div></div>
+                <div class="stat"><div class="stat-value" id="last-sync">-</div><div class="stat-label">Last Updated</div></div>
+            </div>
+        </div>
+        <div id="map"></div>
+        <div class="loading" id="loading">Loading inspection data...</div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script>
+const map=L.map('map').setView([42.3601,-71.0589],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+const markers=L.markerClusterGroup({maxClusterRadius:50});map.addLayer(markers);
+
+function fmtDate(d){return d?new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}):'N/A';}
+
+// Color-coded marker icons
+const greenIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
+const redIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
+const yellowIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
+const greyIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
+
+function getMarkerIcon(result){
+  if(result==='Pass') return greenIcon;
+  if(result==='Fail') return redIcon;
+  if(result && (result.includes('Warning') || result.includes('HE_Fail'))) return yellowIcon;
+  return greyIcon;
+}
+
+function getResultClass(result){
+  if(result==='Pass') return 'result-pass';
+  if(result==='Fail') return 'result-fail';
+  return 'result-warning';
+}
+
+function popup(i){
+  let html=`<div class="inspection-popup">`;
+  html+=`<div class="business-name">${i.businessname||'Unknown Business'}</div>`;
+  if(i.address) html+=`<div>${i.address}</div>`;
+  if(i.dbaname && i.dbaname !== i.businessname) html+=`<strong>DBA:</strong> ${i.dbaname}<br>`;
+  if(i.result) html+=`<span class="result-badge ${getResultClass(i.result)}">${i.result}</span><br>`;
+  html+=`<strong>Inspected:</strong> ${fmtDate(i.resultdttm)}<br>`;
+  if(i.licensecat) html+=`<strong>Type:</strong> ${i.licensecat}<br>`;
+  if(i.licenseno) html+=`<strong>License:</strong> ${i.licenseno}<br>`;
+  if(i.licstatus) html+=`<strong>Status:</strong> ${i.licstatus}<br>`;
+  if(i.violdesc) html+=`<strong>Recent Violation:</strong> ${i.violdesc}<br>`;
+  if(i.viol_level) html+=`<strong>Severity:</strong> ${i.viol_level}<br>`;
+  html+=`</div>`;
+  return html;
+}
+
+function addMarkers(inspections){
+  markers.clearLayers();
+  inspections.forEach(i=>{
+    if(i.latitude&&i.longitude){
+      const m=L.marker([i.latitude,i.longitude],{icon:getMarkerIcon(i.result)});
+      m.bindPopup(popup(i));
+      markers.addLayer(m);
+    }
+  });
+  document.getElementById('loading').style.display='none';
+}
+
+async function load(){
+  const z=document.getElementById('zip-filter').value;
+  const r=document.getElementById('result-filter').value;
+  const d=document.getElementById('days-filter').value;
+  const p=new URLSearchParams({days:d,limit:2000});
+  if(z)p.append('zip',z);
+  if(r)p.append('result',r);
+  document.getElementById('loading').style.display='block';
+  try{
+    const res=await fetch(`/api/inspections?${p}`);
+    const data=await res.json();
+    addMarkers(data.data);
+    document.getElementById('total-establishments').textContent=data.total.toLocaleString();
+  }catch(e){
+    console.error(e);
+    document.getElementById('loading').textContent='Error loading data';
+  }
+}
+
+async function loadStats(){
+  const d=document.getElementById('days-filter').value;
+  try{
+    const res=await fetch(`/api/stats?days=${d}`);
+    const data=await res.json();
+    document.getElementById('pass-rate').textContent=`${data.pass_rate}%`;
+    document.getElementById('total-violations').textContent=data.total_violations.toLocaleString();
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function loadHealth(){
+  try{
+    const res=await fetch('/api/health');
+    const d=await res.json();
+    if(d.last_sync){
+      const h=Math.round(d.hours_since_sync);
+      document.getElementById('last-sync').textContent=h===0?'Just now':`${h}h ago`;
+    }
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function loadFilters(){
+  try{
+    const res=await fetch('/api/neighborhoods');
+    const d=await res.json();
+    const sel=document.getElementById('zip-filter');
+    d.data.forEach(i=>{
+      const o=document.createElement('option');
+      o.value=i.zip;
+      o.textContent=`${i.zip} (${i.count})`;
+      sel.appendChild(o);
+    });
+  }catch(e){
+    console.error(e);
+  }
+  try{
+    const res=await fetch('/api/results');
+    const d=await res.json();
+    const sel=document.getElementById('result-filter');
+    d.data.forEach(i=>{
+      const o=document.createElement('option');
+      o.value=i.code;
+      o.textContent=i.label;
+      sel.appendChild(o);
+    });
+  }catch(e){
+    console.error(e);
+  }
+}
+
+document.getElementById('zip-filter').addEventListener('change',()=>{load();loadStats();});
+document.getElementById('result-filter').addEventListener('change',()=>{load();loadStats();});
+document.getElementById('days-filter').addEventListener('change',()=>{load();loadStats();});
+
+(async()=>{await loadFilters();await load();await loadStats();await loadHealth();})();
+    </script>
+</body>
+</html>

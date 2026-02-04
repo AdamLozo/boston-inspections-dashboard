@@ -1,0 +1,36 @@
+services:
+  # Web Service - FastAPI backend + static frontend
+  - type: web
+    name: boston-restaurants-web
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: boston-data-db
+          property: connectionString
+      - key: SYNC_DAYS_BACK
+        value: "90"
+
+  # Cron Job - Daily data sync
+  - type: cron
+    name: boston-restaurants-sync
+    runtime: python
+    schedule: "0 11 * * *"  # 6 AM EST (11 AM UTC)
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m backend.sync_job
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: boston-data-db
+          property: connectionString
+      - key: SYNC_DAYS_BACK
+        value: "90"
+
+databases:
+  # Reference to shared PostgreSQL database (created separately)
+  - name: boston-data-db
+    databaseName: boston_data
+    plan: starter
