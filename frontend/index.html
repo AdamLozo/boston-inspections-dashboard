@@ -28,6 +28,18 @@
         .legend-title { font-size: 0.875rem; font-weight: 600; color: #2c3e50; }
         .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #555; }
         .legend-marker { width: 12px; height: 12px; border-radius: 50%; }
+        .glossary-btn { margin-left: auto; padding: 0.4rem 0.8rem; background-color: #3498db; color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: background-color 0.2s; }
+        .glossary-btn:hover { background-color: #2980b9; }
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 2rem; border-radius: 8px; max-width: 700px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.5rem; font-weight: 600; color: #2c3e50; }
+        .close-btn { background: none; border: none; font-size: 2rem; cursor: pointer; color: #999; line-height: 1; }
+        .close-btn:hover { color: #333; }
+        .glossary-item { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #eee; }
+        .glossary-item:last-child { border-bottom: none; }
+        .glossary-term { font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem; }
+        .glossary-desc { color: #555; line-height: 1.6; }
         .inspection-popup { max-width: 320px; line-height: 1.6; }
         .inspection-popup strong { font-size: 0.875rem; color: #2c3e50; display: block; margin-top: 0.5rem; }
         .inspection-popup strong:first-child { margin-top: 0; }
@@ -74,6 +86,66 @@
             <div class="legend-item"><span class="legend-marker" style="background-color: #e74c3c;"></span><span>Fail</span></div>
             <div class="legend-item"><span class="legend-marker" style="background-color: #f39c12;"></span><span>Warning / Conditional</span></div>
             <div class="legend-item"><span class="legend-marker" style="background-color: #95a5a6;"></span><span>Other / Unknown</span></div>
+            <button class="glossary-btn" onclick="openGlossary()">📖 Violation Glossary</button>
+        </div>
+    </div>
+
+    <!-- Glossary Modal -->
+    <div id="glossaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Violation Glossary</h2>
+                <button class="close-btn" onclick="closeGlossary()">&times;</button>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Clean-up of Vomiting and Diarrheal Events (Pf)</div>
+                <div class="glossary-desc">Restaurant must have written procedures for handling vomit or diarrhea incidents. This is a Priority Foundation violation—procedures must minimize contamination spread and protect employees, customers, and food surfaces from exposure.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Food Contact Surfaces Clean</div>
+                <div class="glossary-desc">All surfaces that touch food (cutting boards, utensils, equipment) must be properly cleaned and sanitized. Food debris or residue on these surfaces can lead to cross-contamination.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Hair Restraint / Clean Cloths</div>
+                <div class="glossary-desc">Food handlers must wear effective hair restraints (hats, hairnets, beard nets) to prevent hair from contacting food, clean equipment, or utensils. Improper hair restraints can lead to food contamination.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Food Protection</div>
+                <div class="glossary-desc">Food must be protected from contamination during storage, preparation, and service. This includes proper covering, temperature control, and preventing cross-contamination between raw and cooked foods.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Wiping Cloths Clean & Sanitize</div>
+                <div class="glossary-desc">Wet wiping cloths must be stored in sanitizer solution when not in use. Leaving wet cloths on countertops allows bacteria to grow and spread contamination.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Hand Washing Facilities</div>
+                <div class="glossary-desc">Handwashing sinks must be properly located, stocked with soap and paper towels, and accessible at all times. These sinks cannot be used for food prep or other purposes.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">PIC Performing Duties</div>
+                <div class="glossary-desc">Person in Charge (PIC) must be present and actively monitoring food safety. The PIC is responsible for ensuring all food safety procedures are followed, including proper allergen information for customers.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Temperature Control</div>
+                <div class="glossary-desc">Cold foods must be kept at 41°F or below; hot foods at 135°F or above. Improper temperatures allow dangerous bacteria to grow rapidly, increasing foodborne illness risk.</div>
+            </div>
+            <div class="glossary-item">
+                <div class="glossary-term">Pest Control</div>
+                <div class="glossary-desc">Establishment must have effective pest control measures to prevent insects, rodents, and other animals from contaminating food, equipment, and facilities.</div>
+            </div>
+            <div class="glossary-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
+                <h3 style="font-size: 1rem; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">Violation Severity Levels</h3>
+                <div class="glossary-desc">
+                    <strong>⚠️ Minor (*)</strong> - Non-critical violations (-2 points): Sanitation issues not directly related to food safety<br><br>
+                    <strong>⚠️⚠️ Moderate (**)</strong> - Critical violations (-7 points): Issues that could contribute to food contamination<br><br>
+                    <strong>⚠️⚠️⚠️ Critical (***)</strong> - Foodborne illness risk factors (-10 points): Highest health risk violations
+                </div>
+            </div>
+            <div class="glossary-section" style="margin-top: 1rem;">
+                <div class="glossary-desc" style="font-size: 0.85rem; color: #777;">
+                    Based on FDA Food Code and Massachusetts State Sanitary Code. For complete regulations, visit <a href="https://www.boston.gov/departments/inspectional-services" target="_blank" style="color: #3498db;">Boston Inspectional Services</a>.
+                </div>
+            </div>
         </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -241,6 +313,22 @@ document.getElementById('result-filter').addEventListener('change',()=>{load();l
 document.getElementById('days-filter').addEventListener('change',()=>{load();loadStats();});
 
 (async()=>{await loadFilters();await load();await loadStats();await loadHealth();})();
+
+function openGlossary(){
+  document.getElementById('glossaryModal').style.display='block';
+}
+
+function closeGlossary(){
+  document.getElementById('glossaryModal').style.display='none';
+}
+
+// Close modal when clicking outside of it
+window.onclick=function(e){
+  const modal=document.getElementById('glossaryModal');
+  if(e.target===modal){
+    closeGlossary();
+  }
+}
     </script>
 </body>
 </html>
