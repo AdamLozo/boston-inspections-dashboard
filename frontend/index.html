@@ -22,8 +22,12 @@
         .stats-bar { display: flex; gap: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.875rem; flex-wrap: wrap; }
         .stat-value { font-size: 1.25rem; font-weight: 600; color: #2c3e50; }
         .stat-label { color: #999; font-size: 0.75rem; text-transform: uppercase; }
-        #map { height: 600px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        #map { height: 600px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1rem; }
         .loading { text-align: center; padding: 2rem; color: #666; }
+        .legend { background: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
+        .legend-title { font-size: 0.875rem; font-weight: 600; color: #2c3e50; }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #555; }
+        .legend-marker { width: 12px; height: 12px; border-radius: 50%; }
         .inspection-popup { max-width: 320px; line-height: 1.6; }
         .inspection-popup strong { font-size: 0.875rem; color: #2c3e50; display: block; margin-top: 0.5rem; }
         .inspection-popup strong:first-child { margin-top: 0; }
@@ -39,6 +43,7 @@
             .stats-bar { flex-direction: column; gap: 1rem; }
             #map { height: 500px; }
             .inspection-popup { max-width: 250px; font-size: 0.8rem; }
+            .legend { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
         }
     </style>
 </head>
@@ -63,6 +68,13 @@
         </div>
         <div id="map"></div>
         <div class="loading" id="loading">Loading inspection data...</div>
+        <div class="legend">
+            <span class="legend-title">Map Legend:</span>
+            <div class="legend-item"><span class="legend-marker" style="background-color: #27ae60;"></span><span>Pass</span></div>
+            <div class="legend-item"><span class="legend-marker" style="background-color: #e74c3c;"></span><span>Fail</span></div>
+            <div class="legend-item"><span class="legend-marker" style="background-color: #f39c12;"></span><span>Warning / Conditional</span></div>
+            <div class="legend-item"><span class="legend-marker" style="background-color: #95a5a6;"></span><span>Other / Unknown</span></div>
+        </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
