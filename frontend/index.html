@@ -107,6 +107,20 @@ function popup(i){
   return html;
 }
 
+// ZIP code center coordinates for Boston area
+const zipCenters = {
+  '02108': [42.3571, -71.0612], '02109': [42.3651, -71.0536], '02110': [42.3558, -71.0521],
+  '02111': [42.3503, -71.0621], '02113': [42.3647, -71.0542], '02114': [42.3613, -71.0685],
+  '02115': [42.3421, -71.0931], '02116': [42.3503, -71.0812], '02118': [42.3385, -71.0732],
+  '02119': [42.3243, -71.0862], '02120': [42.3299, -71.0995], '02121': [42.3067, -71.0843],
+  '02122': [42.2811, -71.0497], '02124': [42.2846, -71.0710], '02125': [42.3165, -71.0636],
+  '02126': [42.2747, -71.1189], '02127': [42.3334, -71.0417], '02128': [42.3652, -71.0151],
+  '02129': [42.3782, -71.0602], '02130': [42.3099, -71.1150], '02131': [42.2837, -71.1265],
+  '02132': [42.2797, -71.1560], '02134': [42.3553, -71.1392], '02135': [42.3495, -71.1559],
+  '02136': [42.2546, -71.1292], '02163': [42.3495, -71.1434], '02199': [42.3476, -71.0825],
+  '02203': [42.3601, -71.0589], '02210': [42.3486, -71.0420], '02215': [42.3478, -71.1026]
+};
+
 function addMarkers(inspections){
   markers.clearLayers();
   inspections.forEach(i=>{
@@ -117,6 +131,14 @@ function addMarkers(inspections){
     }
   });
   document.getElementById('loading').style.display='none';
+}
+
+function zoomToZip(zip){
+  if(zip && zipCenters[zip]){
+    map.setView(zipCenters[zip], 14, {animate: true, duration: 0.8});
+  } else {
+    map.setView([42.3601, -71.0589], 12, {animate: true, duration: 0.8});
+  }
 }
 
 async function load(){
@@ -131,6 +153,7 @@ async function load(){
     const res=await fetch(`/api/inspections?${p}`);
     const data=await res.json();
     addMarkers(data.data);
+    zoomToZip(z);
     document.getElementById('total-establishments').textContent=data.total.toLocaleString();
   }catch(e){
     console.error(e);
