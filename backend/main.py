@@ -152,7 +152,8 @@ async def get_stats(days: int = Query(90, ge=1, le=3650, description="Number of 
                 """)
                 total_establishments = cur.fetchone()['count']
 
-                # Pass rate (inspections with result = 'Pass')
+                # Pass rate (inspections with passing results)
+                # Passing results include: Pass, HE_Pass, NoViol, PassViol
                 cur.execute(f"""
                     WITH latest_by_business AS (
                         SELECT DISTINCT ON (businessname, address)
@@ -162,7 +163,7 @@ async def get_stats(days: int = Query(90, ge=1, le=3650, description="Number of 
                         ORDER BY businessname, address, resultdttm DESC
                     )
                     SELECT
-                        COUNT(*) FILTER (WHERE result = 'Pass') as passed,
+                        COUNT(*) FILTER (WHERE result IN ('Pass', 'HE_Pass', 'NoViol', 'PassViol')) as passed,
                         COUNT(*) as total
                     FROM latest_by_business
                 """)
