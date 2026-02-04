@@ -84,6 +84,15 @@ const markers=L.markerClusterGroup({maxClusterRadius:50});map.addLayer(markers);
 
 function fmtDate(d){return d?new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}):'N/A';}
 
+function fmtSeverity(level){
+  if(!level) return 'N/A';
+  const stars = level.trim();
+  if(stars === '*') return '⚠️ Minor';
+  if(stars === '**') return '⚠️⚠️ Moderate';
+  if(stars === '***') return '⚠️⚠️⚠️ Critical';
+  return level;
+}
+
 // Color-coded marker icons
 const greenIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
 const redIcon = L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]});
@@ -114,7 +123,7 @@ function popup(i){
   if(i.licenseno) html+=`<strong>License:</strong> ${i.licenseno}<br>`;
   if(i.licstatus) html+=`<strong>Status:</strong> ${i.licstatus}<br>`;
   if(i.violdesc) html+=`<strong>Recent Violation:</strong> ${i.violdesc}<br>`;
-  if(i.viol_level) html+=`<strong>Severity:</strong> ${i.viol_level}<br>`;
+  if(i.viol_level) html+=`<strong>Severity:</strong> ${fmtSeverity(i.viol_level)}<br>`;
   html+=`</div>`;
   return html;
 }
